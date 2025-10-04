@@ -43,18 +43,30 @@ ShellRoot {
         height: Math.min(600, root.primaryScreen.height * 0.8)
         title: "Application Launcher"
         color: "transparent"
-
+  
         onVisibleChanged: if (visible) {
             I3.dispatch('for_window [title="Application Launcher"] floating enable');
             searchInput.text = "";
             searchInput.forceActiveFocus();
         }
-
+        Timer {
+        id: focusChecker
+        interval: 200
+        running: menu.visible
+        repeat: true
+        onTriggered: {
+            // Sprawdź czy jakikolwiek element w oknie ma focus
+            if (menu.visible && !searchInput.activeFocus && !appList.activeFocus) {
+                root.showMenu = false;
+            }
+        }
+    }
         // Tło
         Rectangle {
             anchors.fill: parent
             radius: 12
-            color: "#000000"
+            color: "#080808"  
+            
         }
 
         ColumnLayout {
@@ -63,42 +75,60 @@ ShellRoot {
             spacing: 8
 
             // Wyszukiwarka
-            TextField {
-                id: searchInput
+            RowLayout {
                 Layout.fillWidth: true
                 height: 40
-                color: "#f0f0f0"
-                padding: 10
-                placeholderText: "Wyszukaj aplikację..."
-                placeholderTextColor: "#aaaaaa"
-                font.pixelSize: 14
+                spacing: 8
 
-                background: Rectangle {
+                Rectangle {
+                    anchors.fill: parent
+                    z: -1
                     color: "#0d0d10"
                     border.width: 1
                     border.color: "#333"
                     radius: 4
                 }
 
-                onTextChanged: root.searchText = text
-
-                Keys.onEscapePressed: root.showMenu = false
-                Keys.onDownPressed: {
-                    if (appList.count > 0) {
-                        appList.currentIndex = 0;
-                        appList.focus = true;
-                    }
+                Image {
+                    source: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgZmlsbD0iI2YwZjBmMCIgdmlld0JveD0iMCAwIDI1NiAyNTYiPjxwYXRoIGQ9Ik0yMjkuNjYsMjE4LjM0bC01MC4wNy00OC4wNmE4OC4xMSw4OC4xMSwwLDEsMC0xMS4zMSwxMS4zMWw1MC4wNiw1MC4wN2E4LDgsMCwwLDAsMTEuMzItMTEuMzJaTTQwLDExMmE3Miw3MiwwLDEsMSw3Miw3MkE3Mi4wOCw3Mi4wOCwwLDAsMSw0MCwxMTJaIj48L3BhdGg+PC9zdmc+"
+                    width: 20
+                    height: 20
+                    fillMode: Image.PreserveAspectFit
+                    Layout.alignment: Qt.AlignVCenter
+                    Layout.preferredWidth: 20
+                    Layout.leftMargin: 10
                 }
-                Keys.onReturnPressed: {
-                    // KLUCZOWA ZMIANA: Użyj bezpośrednio filteredAppsList[0]
-                    if (root.filteredAppsList.length > 0) {
-                        const first = root.filteredAppsList[0];
-                        if (first.runInTerminal) {
-                            Quickshell.execDetached(["ghostty", "-e"].concat(first.command), first.workingDirectory);
-                        } else {
-                            first.execute();
+
+                TextField {
+                    id: searchInput
+                    Layout.fillWidth: true
+                    color: "#f0f0f0"
+                    padding: 10
+                    placeholderText: "Wyszukaj aplikację..."
+                    placeholderTextColor: "#aaaaaa"
+                    font.pixelSize: 14
+                    background: null
+
+                    onTextChanged: root.searchText = text
+
+                    Keys.onEscapePressed: root.showMenu = false
+                    Keys.onDownPressed: {
+                        if (appList.count > 0) {
+                            appList.currentIndex = 0;
+                            appList.focus = true;
                         }
-                        root.showMenu = false;
+                    }
+                    Keys.onReturnPressed: {
+                        // KLUCZOWA ZMIANA: Użyj bezpośrednio filteredAppsList[0]
+                        if (root.filteredAppsList.length > 0) {
+                            const first = root.filteredAppsList[0];
+                            if (first.runInTerminal) {
+                                Quickshell.execDetached(["ghostty", "-e"].concat(first.command), first.workingDirectory);
+                            } else {
+                                first.execute();
+                            }
+                            root.showMenu = false;
+                        }
                     }
                 }
             }
@@ -147,7 +177,12 @@ ShellRoot {
                         id: mouseArea
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Qt.PointingHandCursor    
+                        
+    
+
+
+
                         onClicked: {
                             appList.currentIndex = index;
                             if (modelData.runInTerminal) {
@@ -180,3 +215,4 @@ ShellRoot {
         }
     }
 }
+
